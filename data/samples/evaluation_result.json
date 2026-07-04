@@ -1,0 +1,48 @@
+{
+  "project": "AutoDrive Evaluation Demo",
+  "version": "v0.1",
+  "scenarios": [
+    {
+      "scenario_id": "scenario_001",
+      "scene_type": "urban_crossing",
+      "metric_name": "perception_object_detection",
+      "timestamp_range": "3.0s-5.0s",
+      "objects": [
+        {
+          "object_id": 17,
+          "class": "vehicle",
+          "gt_status": "exists",
+          "matched_detection": false,
+          "result": "FN",
+          "failure_reason": "The ground-truth vehicle was not matched with any detection box during 3.2s-4.1s."
+        }
+      ],
+      "summary": {
+        "tp_count": 8,
+        "fp_count": 1,
+        "fn_count": 1
+      }
+    },
+    {
+      "scenario_id": "scenario_002",
+      "scene_type": "highway_following",
+      "metric_name": "perception_object_detection",
+      "timestamp_range": "10.0s-12.0s",
+      "objects": [
+        {
+          "object_id": 23,
+          "class": "pedestrian",
+          "gt_status": "not_exists",
+          "matched_detection": true,
+          "result": "FP",
+          "failure_reason": "A pedestrian detection box appeared in the lane area, but no corresponding ground-truth pedestrian existed."
+        }
+      ],
+      "summary": {
+        "tp_count": 15,
+        "fp_count": 1,
+        "fn_count": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+[
+  {
+    "chunk_id": "metric_doc_sections_0",
+    "source": "/home/qingtao/ai_roadmap/AutoDrive-KB-RAG/data/samples/metric_doc.md",
+    "doc_type": "markdown",
+    "text": "# 自动驾驶感知评价指标说明",
+    "metadata": {
+      "chunk_strategy": "markdown_heading",
+      "section_title": "自动驾驶感知评价指标说明",
+      "section_index": 0
+    }
+  },
+  {
+    "chunk_id": "metric_doc_sections_1",
+    "source": "/home/qingtao/ai_roadmap/AutoDrive-KB-RAG/data/samples/metric_doc.md",
+    "doc_type": "markdown",
+    "text": "## TP 定义\n\nTP，全称 True Positive，表示真实存在的目标被系统正确检测出来。\n\n在自动驾驶感知评价中，如果一个真实目标和一个检测目标在空间位置、类别和时间戳上满足匹配规则，则该检测结果可以被统计为 TP。",
+    "metadata": {
+      "chunk_strategy": "markdown_heading",
+      "section_title": "TP 定义",
+      "section_index": 1
+    }
+  },
+  {
+    "chunk_id": "metric_doc_sections_2",
+    "source": "/home/qingtao/ai_roadmap/AutoDrive-KB-RAG/data/samples/metric_doc.md",
+    "doc_type": "markdown",
+    "text": "## FP 定义\n\nFP，全称 False Positive，表示系统检测出了一个实际不存在的目标。\n\n在感知评价中，FP 通常表示误检。例如道路上没有行人，但系统输出了一个行人目标，则该目标可能被统计为 FP。",
+    "metadata": {
+      "chunk_strategy": "markdown_heading",
+      "section_title": "FP 定义",
+      "section_index": 2
+    }
+  },
+  {
+    "chunk_id": "metric_doc_sections_3",
+    "source": "/home/qingtao/ai_roadmap/AutoDrive-KB-RAG/data/samples/metric_doc.md",
+    "doc_type": "markdown",
+    "text": "## FN 定义\n\nFN，全称 False Negative，表示真实存在的目标没有被系统检测出来。\n\n在自动驾驶感知评价中，FN 通常表示漏检。例如前方存在车辆，但感知系统没有输出对应目标，则该真实目标可能被统计为 FN。",
+    "metadata": {
+      "chunk_strategy": "markdown_heading",
+      "section_title": "FN 定义",
+      "section_index": 3
+    }
+  },
+  {
+    "chunk_id": "metric_doc_sections_4",
+    "source": "/home/qingtao/ai_roadmap/AutoDrive-KB-RAG/data/samples/metric_doc.md",
+    "doc_type": "markdown",
+    "text": "## Precision 和 Recall\n\nPrecision 表示检测结果中有多少是正确的，计算公式为：\n\nPrecision = TP / (TP + FP)\n\nRecall 表示真实目标中有多少被成功检测出来，计算公式为：\n\nRecall = TP / (TP + FN)",
+    "metadata": {
+      "chunk_strategy": "markdown_heading",
+      "section_title": "Precision 和 Recall",
+      "section_index": 4
+    }
+  },
+  {
+    "chunk_id": "evaluation_result_scenario_001",
+    "source": "/home/qingtao/ai_roadmap/AutoDrive-KB-RAG/data/samples/evaluation_result.json",
+    "doc_type": "json",
+    "text": "{\n  \"project\": \"AutoDrive Evaluation Demo\",\n  \"version\": \"v0.1\",\n  \"scenario\": {\n    \"scenario_id\": \"scenario_001\",\n    \"scene_type\": \"urban_crossing\",\n    \"metric_name\": \"perception_object_detection\",\n    \"timestamp_range\": \"3.0s-5.0s\",\n    \"objects\": [\n      {\n        \"object_id\": 17,\n        \"class\": \"vehicle\",\n        \"gt_status\": \"exists\",\n        \"matched_detection\": false,\n        \"result\": \"FN\",\n        \"failure_reason\": \"The ground-truth vehicle was not matched with any detection box during 3.2s-4.1s.\"\n      }\n    ],\n    \"summary\": {\n      \"tp_count\": 8,\n      \"fp_count\": 1,\n      \"fn_count\": 1\n    }\n  }\n}",
+    "metadata": {
+      "chunk_strategy": "json_by_scenario",
+      "scenario_id": "scenario_001",
+      "metric_name": "perception_object_detection",
+      "scene_type": "urban_crossing",
+      "scenario_index": 0
+    }
+  },
+  {
+    "chunk_id": "evaluation_result_scenario_002",
+    "source": "/home/qingtao/ai_roadmap/AutoDrive-KB-RAG/data/samples/evaluation_result.json",
+    "doc_type": "json",
+    "text": "{\n  \"project\": \"AutoDrive Evaluation Demo\",\n  \"version\": \"v0.1\",\n  \"scenario\": {\n    \"scenario_id\": \"scenario_002\",\n    \"scene_type\": \"highway_following\",\n    \"metric_name\": \"perception_object_detection\",\n    \"timestamp_range\": \"10.0s-12.0s\",\n    \"objects\": [\n      {\n        \"object_id\": 23,\n        \"class\": \"pedestrian\",\n        \"gt_status\": \"not_exists\",\n        \"matched_detection\": true,\n        \"result\": \"FP\",\n        \"failure_reason\": \"A pedestrian detection box appeared in the lane area, but no corresponding ground-truth pedestrian existed.\"\n      }\n    ],\n    \"summary\": {\n      \"tp_count\": 15,\n      \"fp_count\": 1,\n      \"fn_count\": 0\n    }\n  }\n}",
+    "metadata": {
+      "chunk_strategy": "json_by_scenario",
+      "scenario_id": "scenario_002",
+      "metric_name": "perception_object_detection",
+      "scene_type": "highway_following",
+      "scenario_index": 1
+    }
+  },
+  {
+    "chunk_id": "accident_case_sections_0",
+    "source": "/home/qingtao/ai_roadmap/AutoDrive-KB-RAG/data/samples/accident_case.md",
+    "doc_type": "markdown",
+    "text": "# 自动驾驶评价失败案例说明",
+    "metadata": {
+      "chunk_strategy": "markdown_heading",
+      "section_title": "自动驾驶评价失败案例说明",
+      "section_index": 0
+    }
+  },
+  {
+    "chunk_id": "accident_case_sections_1",
+    "source": "/home/qingtao/ai_roadmap/AutoDrive-KB-RAG/data/samples/accident_case.md",
+    "doc_type": "markdown",
+    "text": "## Case 1: 路口车辆漏检\n\n在 scenario_001 中，自车接近城市路口时，前方目标车辆在 3.2s 到 4.1s 之间没有被感知系统正确输出。\n\n该问题在评价结果中被统计为 FN。初步分析原因可能包括目标遮挡、检测框置信度过低或时序匹配失败。",
+    "metadata": {
+      "chunk_strategy": "markdown_heading",
+      "section_title": "Case 1: 路口车辆漏检",
+      "section_index": 1
+    }
+  },
+  {
+    "chunk_id": "accident_case_sections_2",
+    "source": "/home/qingtao/ai_roadmap/AutoDrive-KB-RAG/data/samples/accident_case.md",
+    "doc_type": "markdown",
+    "text": "## Case 2: 高速场景误检行人\n\n在 scenario_002 中，高速跟车场景下，系统在车道区域输出了一个行人检测框，但真值数据中不存在对应行人目标。\n\n该问题在评价结果中被统计为 FP。此类误检可能影响规划模块对道路风险的判断。",
+    "metadata": {
+      "chunk_strategy": "markdown_heading",
+      "section_title": "Case 2: 高速场景误检行人",
+      "section_index": 2
+    }
+  }
+]
