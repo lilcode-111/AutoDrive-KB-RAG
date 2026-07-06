@@ -26,5 +26,12 @@ class SupportedFileTypesResponse(BaseModel):
     supported_file_types:List[str]
     note:str
 
+class ParseDocumentResponse(BaseModel):
+    filename:str
+    file_type:str
+    text_length:int
+    preview:str
+    status:str
+
 
 
