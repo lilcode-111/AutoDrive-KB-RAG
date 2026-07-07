@@ -1,5 +1,5 @@
-from typing import List
-from pydantic import BaseModel
+from typing import List,Any,Dict
+from pydantic import BaseModel,Field
 
 #表示服务是否正常运行
 class HealthResponse(BaseModel):  
@@ -32,6 +32,8 @@ class ParseDocumentResponse(BaseModel):
     text_length:int
     preview:str
     status:str
+    metadata:Dict[str,Any] = Field(default_factory=dict)
+
 
 
 
