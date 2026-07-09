@@ -34,6 +34,22 @@ class ParseDocumentResponse(BaseModel):
     status:str
     metadata:Dict[str,Any] = Field(default_factory=dict)
 
+class DocumentChunk(BaseModel):
+    chunk_id: str
+    source: str
+    doc_type: str
+    text: str
+    text_length: int
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+class ParseAndChunkResponse(BaseModel):
+    filename: str
+    file_type: str
+    status: str
+    text_length: int
+    chunk_count: int
+    chunks: List[DocumentChunk]
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 

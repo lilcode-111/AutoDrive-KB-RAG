@@ -39,6 +39,7 @@ def parse_markdown_or_txt(filename:str,content:bytes)->dict:
     return {
         "filename": filename,
         "file_type":file_type,
+        "text": cleaned_text,
         "text_length":len(cleaned_text),
         "preview":make_preview(cleaned_text),
         "status":"success"

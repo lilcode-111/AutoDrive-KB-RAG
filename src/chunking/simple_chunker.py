@@ -1,5 +1,5 @@
 import json
-import re    #这个是干嘛的
+import re    
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -189,8 +189,53 @@ def chunk_files(file_paths: List[str])->List[Dict[str,Any]]:
         all_chunks.extend(chunks)
     return all_chunks
     
+def chunk_parsed_document(
+    text: str,
+    filename:str,
+    file_type:str,
+    base_metadata:Dict[str,Any] | None = None,
+    chunk_size: int = 500,
+    overlap:int = 80,
+) ->list[Dict[str,Any]]:
+    """
+    Chunk parsed document text from FastAPI upload flow.
 
+    This function is used by Week10 Day5 API:
+    upload -> parse -> clean -> chunk
+    """
+    metadata = base_metadata or {}
 
+    chunks = chunk_text_by_window(
+        text = text,
+        source = filename,
+        doc_type = file_type,
+        chunk_size = chunk_size,
+        overlap = overlap
+    )
+
+    normalized_chunks:List[Dict[str,Any]] = []
+
+    for index,chunk in enumerate(chunks):
+        chunk_metadata = {
+            **metadata,
+            **chunk.get("metadata",{}),
+            "filename":filename,
+            "file_type":file_type,
+            "chunk_index":index
+        }
+
+        normalized_chunks.append(
+            {
+                "chunk_id":chunk["chunk_id"],
+                "source":chunk["source"],
+                "doc_type":chunk["doc_type"],
+                "text":chunk["text"],
+                "text_length":len(chunk["text"]),
+                "metadata":chunk_metadata,
+            }
+        )
+
+    return normalized_chunks
 
 
 

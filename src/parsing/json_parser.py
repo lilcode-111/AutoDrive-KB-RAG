@@ -147,6 +147,7 @@ def parse_evaluation_json(filename:str,content:bytes)->dict:
     return {
         "filename":filename,
         "file_type":"evaluation_json",
+        "text": cleaned_text,
         "text_length":len(cleaned_text),
         "preview":make_preview(cleaned_text),
         "status":"success",
