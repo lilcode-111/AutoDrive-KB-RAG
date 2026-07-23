@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import health,documents,retrieval
+from app.routers import health,documents,retrieval,rag
 
 app = FastAPI(
     title="AutoDrive-KB-RAG API",
@@ -14,6 +14,7 @@ app = FastAPI(
 app.include_router(health.router)
 app.include_router(documents.router)
 app.include_router(retrieval.router)
+app.include_router(rag.router)
 
 @app.get("/")
 def root():
