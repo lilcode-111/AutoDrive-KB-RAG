@@ -4,9 +4,9 @@ from app.routers import health,documents,retrieval,rag
 app = FastAPI(
     title="AutoDrive-KB-RAG API",
     description=(
-        "FastAPI service for the AutoDrive-KB-RAG project. "
-        "This service will support document upload, parsing, cleaning, chunking, "
-        "retrieval, and RAG prompt construction."
+        "FastAPI service for document upload, parsing, chunking, "
+        "embedding retrieval, grounded prompt construction, "
+        "and RAG answer generation."
     ),
     version = "0.1.0"
 )

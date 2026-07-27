@@ -5,6 +5,8 @@ from fastapi import HTTPException
 
 from app.routers import rag as rag_router
 
+from src.llm.fake_llm_client import FakeLLMClient
+
 
 class StubRAGService:
     """
@@ -103,3 +105,49 @@ def test_answer_question_converts_validation_error_to_http_400(
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail == "query must not be blank"
+
+def test_create_llm_client_defaults_to_fake(
+    monkeypatch: pytest.MonkeyPatch,
+)->None:
+    monkeypatch.delenv(
+        "LLM_PROVIDER",
+        raising=False,
+    )
+
+    client = rag_router.create_llm_client()
+
+    assert isinstance(client, FakeLLMClient)
+
+def test_create_llm_client_selects_openai(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sentinel_client = object()
+
+    monkeypatch.setenv(
+        "LLM_PROVIDER",
+        "openai",
+    )
+
+    monkeypatch.setattr(
+        rag_router,
+        "OpenAICompatibleLLMClient",
+        lambda: sentinel_client,
+    )
+
+    client = rag_router.create_llm_client()
+
+    assert client is sentinel_client
+
+def test_create_llm_client_rejects_unknown_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "LLM_PROVIDER",
+        "unknown",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="LLM_PROVIDER must be either",
+    ):
+        rag_router.create_llm_client()
