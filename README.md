@@ -4,84 +4,106 @@
 
 AutoDrive-KB-RAG 是一个面向自动驾驶评价场景的 RAG 知识库问答项目。
 
-本项目不是普通 PDF 聊天机器人，而是围绕自动驾驶评价资料进行检索和问答，主要处理以下类型的数据：
+项目主要处理以下类型的资料：
 
 ```text
 1. 自动驾驶评价指标说明
-2. 评价 JSON 结果
-3. 事故案例和失败原因说明
+2. 自动驾驶评价 JSON 结果
+3. 事故案例与失败原因说明
 ```
 
-当前项目已经完成 RAG 前半段链路：
-
-```text
-原始资料
-→ Chunking 文档切块
-→ Toy Retrieval TopK 检索
-→ Prompt Building 构造 RAG Prompt
-```
-
-后续会继续接入 Embedding 模型、FAISS / Milvus、FastAPI 和 LLM 生成链。
+项目目标不是构建普通 PDF 聊天机器人，而是将自动驾驶评价文档、场景结果和指标定义组织成可检索、可追溯的知识库。
 
 ---
 
-## 2. 项目目标
+## 2. 当前能力
 
-本项目的目标是构建一个面向自动驾驶评价资料的知识库系统，用于辅助理解：
+项目当前已经打通基础 RAG 问答链路：
 
 ```text
-TP / FP / FN 的定义
-Precision / Recall 的计算方式
-评价 JSON 字段含义
-某个 scenario 被判定为 FP / FN 的原因
-事故案例和失败原因
+文档上传
+→ 文档解析
+→ 文档切块
+→ SentenceTransformer Embedding
+→ InMemoryVectorIndex
+→ TopK 语义检索
+→ Grounded Prompt
+→ LLM Client
+→ Answer + Sources
 ```
 
-示例问题：
+目前支持：
 
 ```text
-什么是 FP 误检？
-什么是 FN 漏检？
-Recall 怎么计算？
-scenario_001 为什么被判定为 FN？
-scenario_002 为什么是 FP？
+1. 上传 Markdown、JSON、TXT 和 PDF 文档
+2. 将文档解析并切分为统一格式的 chunks
+3. 使用 SentenceTransformer 生成语义向量
+4. 使用内存向量索引完成 TopK 检索
+5. 构造只允许依据检索资料回答的 Prompt
+6. 使用 FakeLLMClient 验证完整 RAG 链路
+7. 使用 OpenAICompatibleLLMClient 接入真实生成模型
+8. 返回答案以及原始检索来源
+9. 无检索资料时返回 insufficient_context
+10. 通过 FastAPI 暴露上传、检索和问答接口
 ```
 
 ---
 
-## 3. 当前项目结构
+## 3. 项目结构
 
 ```text
-week9_autoDrive_RAG/
+AutoDrive-KB-RAG/
+├── app/
+│   ├── main.py
+│   └── routers/
+│       ├── health.py
+│       ├── documents.py
+│       ├── retrieval.py
+│       └── rag.py
 ├── data/
-│   ├── samples/
-│   │   ├── metric_doc.md
-│   │   ├── evaluation_result.json
-│   │   └── accident_case.md
-│   └── processed/
-│       └── day2_chunks.json
-├── examples/
-│   ├── run_day2_chunking_demo.py
-│   ├── run_day3_retrieval_demo.py
-│   └── run_day4_prompt_demo.py
+│   └── samples/
+│       ├── metric_doc.md
+│       ├── evaluation_result.json
+│       └── accident_case.md
 ├── src/
 │   ├── chunking/
 │   │   └── simple_chunker.py
+│   ├── parsing/
+│   │   └── document_parser.py
+│   ├── embeddings/
+│   │   ├── embedding_client.py
+│   │   └── sentence_transformer_client.py
 │   ├── retrieval/
-│   │   └── toy_retriever.py
-│   └── prompt/
-│       └── prompt_builder.py
-├── week9.md/
-│   ├── day1_rag_overview.md
-│   ├── day2_chunking_summary.md
-│   ├── day3_embedding_retrieval_summary.md
-│   └── day4_prompt_building_summary.md
+│   │   ├── retrieval_service.py
+│   │   └── vector_index.py
+│   ├── prompt/
+│   │   └── prompt_builder.py
+│   ├── llm/
+│   │   ├── llm_client.py
+│   │   ├── fake_llm_client.py
+│   │   └── openai_compatible_llm_client.py
+│   └── rag/
+│       └── rag_service.py
+├── tests/
+├── .env.example
+├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## 4. 数据说明
+## 4. 核心模块
+
+### 4.1 文档处理
+
+文档上传后，系统会依次完成：
+
+```text
+文件类型识别
+→ 文本解析
+→ metadata 提取
+→ chunk 切分
+```
 
 当前样例数据位于：
 
@@ -91,221 +113,314 @@ data/samples/
 
 包括：
 
-```text
-metric_doc.md
-```
+| 文件 | 作用 |
+|---|---|
+| `metric_doc.md` | TP、FP、FN、Precision、Recall 等指标说明 |
+| `evaluation_result.json` | 自动驾驶场景评价结果 |
+| `accident_case.md` | 事故案例和失败原因说明 |
 
-用于说明 TP、FP、FN、Precision、Recall 等评价指标。
+### 4.2 Embedding 与检索
 
-```text
-evaluation_result.json
-```
-
-用于模拟自动驾驶评价结果，包含 scenario、objects、tp_count、fp_count、fn_count 和 failure_reason。
+当前使用：
 
 ```text
-accident_case.md
+sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
 ```
 
-用于说明具体失败案例，例如路口车辆漏检和高速场景误检行人。
-
----
-
-## 5. Day 2：Chunking 文档切块
-
-### 5.1 功能
-
-Day 2 实现了文档切块模块：
+Embedding 向量维度为：
 
 ```text
-src/chunking/simple_chunker.py
+384
 ```
 
-支持三类切块方式：
-
-| 数据类型 | 切块方式 | 原因 |
-|---|---|---|
-| Markdown 指标文档 | 按标题切块 | 每个标题小节通常是完整语义单元 |
-| Markdown 事故案例 | 按标题切块 | 每个 Case 通常可以独立分析 |
-| 评价 JSON | 按 scenario_id 切块 | 一个 scenario 对应一次完整评价结果 |
-| 普通 txt 文本 | 固定窗口切块 | 无结构信息时的兜底方案 |
-
-### 5.2 运行方式
-
-```bash
-python examples/run_day2_chunking_demo.py
-```
-
-运行后生成：
+检索流程：
 
 ```text
-data/processed/day2_chunks.json
+用户 query
+→ query embedding
+→ 与已索引 chunk 计算相似度
+→ 按 score 排序
+→ 返回 TopK chunks
 ```
 
-该文件是后续 Retriever 检索的知识库输入。
+### 4.3 PromptBuilder
 
----
+PromptBuilder 将用户问题与 TopK 检索结果组合成 Grounded Prompt。
 
-## 6. Day 3：Toy Retrieval 检索
-
-### 6.1 功能
-
-Day 3 实现了一个最小版 Toy Retriever：
+Prompt 约束包括：
 
 ```text
-src/retrieval/toy_retriever.py
+1. 只能依据提供的参考资料回答
+2. 不得编造资料中不存在的信息
+3. 资料不足时明确返回无法确定
+4. 使用 [S1]、[S2] 等编号引用证据
+5. 保留 source、chunk_id 和 metadata 等来源信息
 ```
 
-当前检索流程：
+### 4.4 RAGService
 
-```text
-chunk text
-→ tokenize()
-→ text_to_vector()
-→ cosine_similarity()
-→ TopK chunks
-```
-
-目前使用的是简单词频向量和余弦相似度。
-
-这不是最终工业级检索方案，但可以帮助理解 RAG 的核心流程：
-
-```text
-用户 query 和 chunk 都变成向量，然后计算相似度，返回最相关的 TopK chunks。
-```
-
-### 6.2 运行方式
-
-```bash
-python examples/run_day3_retrieval_demo.py
-```
-
-示例 query：
-
-```text
-什么是 FP 误检？
-什么是 FN 漏检？
-Recall 怎么计算？
-scenario_001 为什么被判定为 FN？
-scenario_002 为什么是 FP？
-```
-
----
-
-## 7. Day 4：Prompt Building
-
-### 7.1 功能
-
-Day 4 实现了 Prompt Builder：
-
-```text
-src/prompt/prompt_builder.py
-```
-
-它的作用是把 Retriever 返回的 TopK chunks 整理成可以交给 LLM 的 Prompt。
-
-核心流程：
+RAGService 负责组织完整业务流程：
 
 ```text
 query
-→ retriever.search(query)
-→ TopK chunks
-→ build_rag_prompt(query, retrieved_chunks)
-→ final prompt
+→ RetrievalService.search()
+→ build_rag_prompt()
+→ LLMClient.generate()
+→ answer + sources
 ```
 
-Prompt 中包含：
+当没有检索结果时，系统不会继续调用 LLM，而是直接返回：
 
-```text
-1. 角色设定
-2. 回答要求
-3. TopK 参考资料
-4. 用户问题
-5. 输出格式约束
+```json
+{
+  "answer": "根据当前资料无法确定。",
+  "answer_status": "insufficient_context",
+  "source_count": 0,
+  "sources": []
+}
 ```
 
-### 7.2 运行方式
+### 4.5 LLM Client
+
+项目定义了统一接口：
+
+```python
+generate(prompt: str) -> str
+```
+
+当前包含两种实现：
+
+| Client | 作用 |
+|---|---|
+| `FakeLLMClient` | 返回固定答案，用于测试和本地开发 |
+| `OpenAICompatibleLLMClient` | 调用 OpenAI-compatible Chat Completions API |
+
+---
+
+## 5. 安装
+
+建议使用独立 Python 或 Conda 环境。
 
 ```bash
-python examples/run_day4_prompt_demo.py
+conda activate ai-roadmap
+python -m pip install -r requirements.txt
 ```
 
-当前只是生成 Prompt，暂时不调用 LLM。
+确认主要依赖：
+
+```bash
+python -c "import fastapi"
+python -c "import sentence_transformers"
+python -c "from openai import OpenAI"
+```
+
+首次使用 SentenceTransformer 时可能需要下载 Encoder 模型。模型缓存完成后，后续运行会从本地加载。
 
 ---
 
-## 8. 当前能力
+## 6. 环境变量
 
-当前项目已经具备以下能力：
+参考 `.env.example`：
 
 ```text
-1. 读取自动驾驶评价资料
-2. 将 Markdown 和 JSON 切成 chunks
-3. 保存统一格式的 chunk 数据
-4. 输入 query 后返回 TopK 相关 chunks
-5. 根据 TopK chunks 构造 RAG Prompt
+LLM_PROVIDER=fake
+
+OPENAI_API_KEY=
+OPENAI_MODEL=
+OPENAI_BASE_URL=
 ```
 
-也就是说，项目已经完成了 RAG 前半段：
+### Fake 模式
+
+```bash
+export LLM_PROVIDER=fake
+```
+
+Fake 模式不会访问真实生成模型，也不需要 API Key。
+
+### OpenAI-compatible 模式
+
+```bash
+export LLM_PROVIDER=openai
+export OPENAI_API_KEY="your-api-key"
+export OPENAI_MODEL="your-model-name"
+```
+
+使用第三方兼容服务时，还需要设置：
+
+```bash
+export OPENAI_BASE_URL="provider-api-base-url"
+```
+
+不要将真实 API Key 写入源代码或提交到 GitHub。
+
+---
+
+## 7. 启动服务
+
+Fake 模式：
+
+```bash
+LLM_PROVIDER=fake \
+PYTHONPATH=. \
+uvicorn app.main:app --reload
+```
+
+启动成功后访问：
 
 ```text
-Document Processing
-→ Retrieval
-→ Prompt Construction
+http://127.0.0.1:8000/docs
+```
+
+Swagger 页面可以直接测试上传、检索和 RAG 问答接口。
+
+---
+
+## 8. API 接口
+
+| 方法 | 接口 | 作用 |
+|---|---|---|
+| `GET` | `/health` | 健康检查 |
+| `POST` | `/api/v1/retrieval/index-document` | 上传、解析、切块并建立索引 |
+| `POST` | `/api/v1/retrieval/search` | TopK 语义检索 |
+| `POST` | `/api/v1/retrieval/clear` | 清空内存索引 |
+| `GET` | `/api/v1/retrieval/status` | 查看当前索引状态 |
+| `POST` | `/api/v1/rag/answer` | 检索并生成答案 |
+
+---
+
+## 9. 快速验证
+
+### 9.1 清空索引
+
+```bash
+curl -X POST \
+  "http://127.0.0.1:8000/api/v1/retrieval/clear"
+```
+
+### 9.2 上传文档
+
+```bash
+curl -X POST \
+  "http://127.0.0.1:8000/api/v1/retrieval/index-document" \
+  -F "file=@data/samples/metric_doc.md"
+```
+
+### 9.3 TopK 检索
+
+```bash
+curl -X POST \
+  "http://127.0.0.1:8000/api/v1/retrieval/search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "什么是 FN 漏检？",
+    "top_k": 3
+  }'
+```
+
+### 9.4 RAG 问答
+
+```bash
+curl -X POST \
+  "http://127.0.0.1:8000/api/v1/rag/answer" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "什么是 FN 漏检？",
+    "top_k": 3
+  }'
+```
+
+Fake 模式下，答案为固定测试文本，但 `sources` 是真实检索结果。
+
+示例响应：
+
+```json
+{
+  "query": "什么是 FN 漏检？",
+  "answer": "这是一个用于验证 RAG API 链路的测试答案。",
+  "answer_status": "answered",
+  "source_count": 1,
+  "sources": [
+    {
+      "rank": 1,
+      "score": 0.4005,
+      "chunk_id": "metric_doc_window_0",
+      "source": "metric_doc.md",
+      "doc_type": "markdown",
+      "text": "FN，全称 False Negative，表示真实存在的目标没有被系统检测出来。",
+      "metadata": {}
+    }
+  ]
+}
 ```
 
 ---
 
-## 9. 当前局限
+## 10. 运行测试
 
-当前项目还只是 Week 9 的学习版 Demo，存在以下局限：
+运行全部测试：
+
+```bash
+LLM_PROVIDER=fake \
+PYTHONPATH=. \
+pytest -q
+```
+
+本地 Week12 验收结果：
 
 ```text
-1. 还没有接入真正的 embedding 模型
-2. 还没有接入 FAISS / Milvus 等向量数据库
-3. 还没有接入 LLM 生成答案
-4. 中文分词目前只是按单字切分
-5. Toy Retriever 只适合理解流程，不适合作为最终检索方案
+38 passed
+```
+
+当前 Router 测试会在模块导入阶段初始化真实 Embedding Encoder，因此新的 Python 进程启动测试时可能需要数十秒。
+
+这不是重复下载模型，而是 PyTorch、Transformers 和 Encoder 的初始化成本。
+
+---
+
+## 11. 当前限制
+
+```text
+1. 当前使用 InMemoryVectorIndex，服务重启后索引会丢失
+2. 多个 Uvicorn Worker 之间无法共享内存索引
+3. FakeLLMClient 只用于链路测试，不会生成真实答案
+4. OpenAI-compatible Client 已实现，但真实模型调用需要有效配置
+5. Embedding Encoder 当前在模块导入阶段初始化，测试启动较慢
+6. 当前还没有系统化的 RAG 评测数据集
+7. 尚未接入 FAISS、Milvus 等持久化向量数据库
 ```
 
 ---
 
-## 10. 后续计划
+## 12. 后续计划
 
-后续可以按以下方向继续扩展：
-
-```text
-1. 接入 sentence-transformers 或 bge / gte / Qwen embedding
-2. 使用 FAISS 或 Milvus 存储向量
-3. 接入 LLM，完成 Prompt → Answer
-4. 使用 FastAPI 封装上传、检索和问答接口
-5. 增加检索评测，例如 Recall@K
-6. 增加 Docker 部署
-```
-
-下一阶段目标：
+下一阶段将重点进行工程化改造：
 
 ```text
-输入问题
-→ 检索 TopK chunks
-→ 构造 Prompt
-→ 调用 LLM
-→ 输出带依据的答案
+1. 统一配置管理
+2. Embedding 和 Service 延迟初始化
+3. 日志与请求耗时记录
+4. 统一异常处理
+5. Dockerfile 与部署说明
+6. README 和接口文档完善
+7. 构建 RAG 检索与答案评测集
+8. 后续接入持久化向量数据库
 ```
 
 ---
 
-## 11. 项目定位
+## 13. 项目定位
 
-AutoDrive-KB-RAG 的定位不是普通文档问答，而是面向自动驾驶评价场景的知识库系统。
+AutoDrive-KB-RAG 面向自动驾驶评价、仿真测试和数据闭环场景。
 
-项目特点：
+项目可以用于辅助理解：
 
 ```text
-1. 数据来自自动驾驶评价场景
-2. 支持指标文档、评价 JSON、事故案例
-3. 检索结果可以和 scenario_id、metric_name、scene_type 等 metadata 结合
-4. 后续可以作为 AutoDrive-Log-Agent 的知识检索工具
+TP / FP / FN 指标
+Precision / Recall
+评价 JSON 字段
+具体 scenario 的失败原因
+事故案例与感知问题
 ```
 
-这个项目可以和自动驾驶仿真评价、数据闭环、AI Agent、RAG 应用岗位结合。
+后续可以作为 AutoDrive-Log-Agent 的知识检索与问答组件。
