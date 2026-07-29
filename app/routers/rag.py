@@ -1,15 +1,10 @@
-import os
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.routers.retrieval import RetrievedChunk, retrieval_service
-from src.llm.fake_llm_client import FakeLLMClient
-from src.llm.llm_client import LLMClient
-from src.llm.openai_compatible_llm_client import (
-    OpenAICompatibleLLMClient
-)
+from app.routers.retrieval import RetrievedChunk
+from app.dependencies import get_rag_service
 from src.rag.rag_service import RAGService
 
 router = APIRouter(
@@ -35,43 +30,10 @@ class RAGAnswerResponse(BaseModel):
     source_count: int
     sources: List[RetrievedChunk]
 
-# llm_client = FakeLLMClient(
-#     response = "这是一个用于验证 RAG API 链路的测试答案。"
-# )
-def create_llm_client()-> LLMClient:
-    """
-    Create an LLM client according to the LLM_PROVIDER environment variable.
-
-    Supported providers:
-    - fake
-    - openai
-    """
-    provider = os.getenv(
-        "LLM_PROVIDER",
-        "fake", 
-    ).strip().lower()
-
-    if provider == "fake":
-        return FakeLLMClient(
-            response="这是一个用于验证 RAG API 链路的测试答案。"
-        )
-    
-    if provider == "openai":
-        return OpenAICompatibleLLMClient()
-    
-    raise ValueError(
-        "LLM_PROVIDER must be either 'fake' or 'openai'"
-    )
-
-llm_client = create_llm_client()
-
-rag_service = RAGService(
-    retrieval_service=retrieval_service,
-    llm_client=llm_client
-)
 
 @router.post("/answer",response_model=RAGAnswerResponse,)
-def answer_question(request:RAGAnswerRequest,)->RAGAnswerResponse:
+def answer_question(request:RAGAnswerRequest,rag_service: RAGService = Depends(
+        get_rag_service),)->RAGAnswerResponse:
     """
     Retrieve relevant chunks and generate a grounded answer.
     """
@@ -81,5 +43,3 @@ def answer_question(request:RAGAnswerRequest,)->RAGAnswerResponse:
         raise HTTPException(status_code = 400,detail = str(exc)) from exc
     
     return RAGAnswerResponse(**result)
-    
-

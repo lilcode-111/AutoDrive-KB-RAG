@@ -1,19 +1,22 @@
 from typing import Any,Dict,List
-from fastapi import APIRouter,File,UploadFile
+from fastapi import APIRouter,Depends,File,UploadFile
 from pydantic import BaseModel,Field
 
 from src.chunking.simple_chunker import chunk_parsed_document
 from src.parsing.document_parser import parse_document_by_type
 from src.retrieval.retrieval_service import RetrievalService
+from app.dependencies import get_retrieval_service
+
 
 router = APIRouter(
     prefix="/api/v1/retrieval",
     tags=["retrieval"]
 )
 
-# Global in-memory retrieval service.
-# The model is loaded once when this module is imported.
-retrieval_service = RetrievalService()
+# # Global in-memory retrieval service.
+# # The model is loaded once when this module is imported.
+# retrieval_service = RetrievalService()
+
 
 class RetrievalIndexResponse(BaseModel):
     filename: str
@@ -64,7 +67,9 @@ def normalize_chunk(chunk: Dict[str,Any]) -> Dict[str,Any]:
     return normalized
 
 @router.post("/index-document", response_model=RetrievalIndexResponse)
-async def index_document(file:UploadFile = File(...))->RetrievalIndexResponse:
+async def index_document(file:UploadFile = File(...),
+        retrieval_service: RetrievalService = Depends(get_retrieval_service),
+        )->RetrievalIndexResponse:
     """
     Upload a document, parse it, chunk it, embed chunks, and add them into the
     in-memory vector index.
@@ -100,7 +105,9 @@ async def index_document(file:UploadFile = File(...))->RetrievalIndexResponse:
     )
 
 @router.post("/search",response_model=RetrievalSearchResponse)
-def search(request:RetrievalSearchRequest)->RetrievalSearchResponse:
+def search(request:RetrievalSearchRequest,
+    retrieval_service: RetrievalService = Depends(get_retrieval_service),
+        )->RetrievalSearchResponse:
     """
     Search indexed chunks by semantic similarity.
     """
@@ -117,7 +124,9 @@ def search(request:RetrievalSearchRequest)->RetrievalSearchResponse:
     )
 
 @router.post("/clear")
-def clear_index()->Dict[str,Any]:
+def clear_index(
+    retrieval_service: RetrievalService = Depends(get_retrieval_service),
+    )->Dict[str,Any]:
     """
     Clear the in-memory retrieval index.
     Useful during local testing.
@@ -131,7 +140,9 @@ def clear_index()->Dict[str,Any]:
 
 
 @router.get("/status")
-def retrieval_status()->Dict[str,Any]:
+def retrieval_status(
+    retrieval_service: RetrievalService = Depends(get_retrieval_service),
+    )->Dict[str,Any]:
     """
     Return current retrieval index status.
     """

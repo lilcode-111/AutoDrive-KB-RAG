@@ -5,8 +5,6 @@ from fastapi import HTTPException
 
 from app.routers import rag as rag_router
 
-from src.llm.fake_llm_client import FakeLLMClient
-
 
 class StubRAGService:
     """
@@ -62,21 +60,16 @@ def test_rag_answer_route_is_registered() -> None:
     assert "/api/v1/rag/answer" in route_paths
 
 
-def test_answer_question_returns_rag_response(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        rag_router,
-        "rag_service",
-        StubRAGService(),
-    )
-
+def test_answer_question_returns_rag_response() -> None:
     request = rag_router.RAGAnswerRequest(
         query="什么是 FN？",
         top_k=1,
     )
 
-    response = rag_router.answer_question(request)
+    response = rag_router.answer_question(
+        request=request,
+        rag_service=StubRAGService(),
+    )
 
     assert response.query == "什么是 FN？"
     assert response.answer_status == "answered"
@@ -86,68 +79,17 @@ def test_answer_question_returns_rag_response(
     assert response.sources[0].source == "metric_doc.md"
 
 
-def test_answer_question_converts_validation_error_to_http_400(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        rag_router,
-        "rag_service",
-        InvalidRequestStubRAGService(),
-    )
-
+def test_answer_question_converts_validation_error_to_http_400() -> None:
     request = rag_router.RAGAnswerRequest(
         query="   ",
         top_k=1,
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        rag_router.answer_question(request)
+        rag_router.answer_question(
+            request=request,
+            rag_service=InvalidRequestStubRAGService(),
+        )
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail == "query must not be blank"
-
-def test_create_llm_client_defaults_to_fake(
-    monkeypatch: pytest.MonkeyPatch,
-)->None:
-    monkeypatch.delenv(
-        "LLM_PROVIDER",
-        raising=False,
-    )
-
-    client = rag_router.create_llm_client()
-
-    assert isinstance(client, FakeLLMClient)
-
-def test_create_llm_client_selects_openai(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    sentinel_client = object()
-
-    monkeypatch.setenv(
-        "LLM_PROVIDER",
-        "openai",
-    )
-
-    monkeypatch.setattr(
-        rag_router,
-        "OpenAICompatibleLLMClient",
-        lambda: sentinel_client,
-    )
-
-    client = rag_router.create_llm_client()
-
-    assert client is sentinel_client
-
-def test_create_llm_client_rejects_unknown_provider(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv(
-        "LLM_PROVIDER",
-        "unknown",
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="LLM_PROVIDER must be either",
-    ):
-        rag_router.create_llm_client()
