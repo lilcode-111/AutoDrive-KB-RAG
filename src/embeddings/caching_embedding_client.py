@@ -138,12 +138,6 @@ class CachingEmbeddingClient(EmbeddingClient):
 
         return list(vector_copy)
     
-    def get_embedding_dimension(self) -> int:
-        """
-        Delegate embedding-dimension discovery to the wrapped client.
-        """
-        return self.delegate.get_embedding_dimension()
-    
     def clear_cache(self) -> None:
         """
         Remove all cached embedding vectors.
