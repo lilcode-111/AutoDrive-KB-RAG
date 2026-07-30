@@ -8,6 +8,7 @@ from src.llm.openai_compatible_llm_client import (OpenAICompatibleLLMClient,)
 from src.rag.rag_service import RAGService
 from src.retrieval.retrieval_service import RetrievalService
 from src.retrieval.vector_index import InMemoryVectorIndex
+from src.embeddings.caching_embedding_client import (CachingEmbeddingClient,)
 
 FAKE_LLM_RESPONSE = "这是一个用于验证 RAG API 链路的测试答案。"
 
@@ -16,15 +17,25 @@ def get_embedding_client()->EmbeddingClient:
     """
     Create and cache the shared embedding client.
 
-    The SentenceTransformer model is not loaded until this function
-    is called for the first time.
+    The underlying SentenceTransformer model is created lazily.
+    When enabled, embedding results are stored in an in-process LRU cache.
     """
     settings = get_settings()
 
-    return SentenceTransformerEmbeddingClient(
-        model_name = settings.embedding_model,
-        batch_size = settings.embedding_batch_size,
-        normalize_embeddings = settings.embedding_normalize,
+    base_client: EmbeddingClient = (
+        SentenceTransformerEmbeddingClient(
+            model_name = settings.embedding_model,
+            batch_size = settings.embedding_batch_size,
+            normalize_embeddings = settings.embedding_normalize
+        )
+    )
+
+    if not settings.embedding_cache_enabled:
+        return base_client
+    
+    return CachingEmbeddingClient(
+        delegate =  base_client,
+        max_size = settings.embedding_cache_max_size, 
     )
 
 @lru_cache(maxsize=1)

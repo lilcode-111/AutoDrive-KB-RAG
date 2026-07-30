@@ -2,6 +2,7 @@ import pytest
 
 import app.dependencies as dependencies
 from src.llm.fake_llm_client import FakeLLMClient
+from src.embeddings.caching_embedding_client import (CachingEmbeddingClient,)
 
 
 CONFIG_ENV_NAMES = (
@@ -76,7 +77,7 @@ def install_stub_embedding_client(
     return created_instances
 
 
-def test_get_embedding_client_is_lazy_and_cached(
+def test_get_embedding_client_is_lazy_cached_and_wrapped(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     created_instances = install_stub_embedding_client(
@@ -95,18 +96,53 @@ def test_get_embedding_client_is_lazy_and_cached(
         "EMBEDDING_NORMALIZE",
         "false",
     )
+    monkeypatch.setenv(
+        "EMBEDDING_CACHE_ENABLED",
+        "true",
+    )
+    monkeypatch.setenv(
+        "EMBEDDING_CACHE_MAX_SIZE",
+        "64",
+    )
 
+    # Merely installing the stub must not create the client.
     assert created_instances == []
 
     first_client = dependencies.get_embedding_client()
     second_client = dependencies.get_embedding_client()
 
+    # The dependency factory itself is cached.
     assert first_client is second_client
+
+    # The real embedding implementation is created only once.
     assert len(created_instances) == 1
 
-    assert first_client.model_name == "test-embedding-model"
-    assert first_client.batch_size == 16
-    assert first_client.normalize_embeddings is False
+    # Cache is enabled, so the returned object is the wrapper.
+    assert isinstance(
+        first_client,
+        CachingEmbeddingClient,
+    )
+    assert first_client.max_size == 64
+
+    base_client = created_instances[0]
+
+    # The wrapper delegates actual embedding calculation to the base client.
+    assert first_client.delegate is base_client
+
+    assert getattr(
+        base_client,
+        "model_name",
+    ) == "test-embedding-model"
+
+    assert getattr(
+        base_client,
+        "batch_size",
+    ) == 16
+
+    assert getattr(
+        base_client,
+        "normalize_embeddings",
+    ) is False
 
 
 def test_get_retrieval_service_is_cached(
@@ -271,4 +307,28 @@ def test_clear_dependency_caches_removes_cached_instances(
     assert (
         dependencies.get_rag_service.cache_info().currsize
         == 0
+    )
+
+def test_get_embedding_client_returns_base_client_when_cache_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created_instances = install_stub_embedding_client(
+        monkeypatch,
+    )
+
+    monkeypatch.setenv(
+        "EMBEDDING_CACHE_ENABLED",
+        "false",
+    )
+
+    client = dependencies.get_embedding_client()
+
+    assert len(created_instances) == 1
+
+    base_client = created_instances[0]
+
+    assert client is base_client
+    assert not isinstance(
+        client,
+        CachingEmbeddingClient,
     )
