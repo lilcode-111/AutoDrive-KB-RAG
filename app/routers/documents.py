@@ -39,8 +39,27 @@ def supported_file_types()->SupportedFileTypesResponse:
         note = "Markdown/TXT/JSON/PDF parser is implemented."
     )
 
-@router.post("/parse",response_model=ParseDocumentResponse)
-async def parse_document_response(file:UploadFile = File(...))->ParseDocumentResponse:
+@router.post(
+    "/parse",
+    response_model=ParseDocumentResponse,
+    summary="Parse an uploaded document",
+    description=(
+        "Upload a supported Markdown, text, JSON, or PDF file "
+        "and return normalized parsing metadata and a text preview."
+    ),
+    response_description=(
+        "Parsed document metadata and text preview."
+    ),
+)
+async def parse_document_response(
+    file: UploadFile = File(
+        ...,
+        description=(
+            "Document file to parse. Supported extensions include "
+            ".md, .markdown, .txt, .json, and .pdf."
+        ),
+    ),
+) -> ParseDocumentResponse:
     """
     Upload and parse a Markdown/TXT document.
 
@@ -66,8 +85,28 @@ async def parse_document_response(file:UploadFile = File(...))->ParseDocumentRes
     except ValueError as exc:
         raise HTTPException(status_code=400,detail=str(exc))
 
-@router.post("/parse-and-chunk", response_model=ParseAndChunkResponse)
-async def parse_and_chunk_document(file: UploadFile = File(...)) -> ParseAndChunkResponse:
+@router.post(
+    "/parse-and-chunk",
+    response_model=ParseAndChunkResponse,
+    summary="Parse and chunk an uploaded document",
+    description=(
+        "Upload a supported document, extract normalized text, "
+        "and split the text into overlapping chunks for downstream "
+        "indexing."
+    ),
+    response_description=(
+        "Parsed document metadata and generated chunks."
+    ),
+)
+async def parse_and_chunk_document(
+    file: UploadFile = File(
+        ...,
+        description=(
+            "Document file to parse and chunk. Supported extensions "
+            "include .md, .markdown, .txt, .json, and .pdf."
+        ),
+    ),
+) -> ParseAndChunkResponse:
     """
     Upload, parse, clean, and chunk a document.
 

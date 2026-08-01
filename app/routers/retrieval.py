@@ -30,8 +30,25 @@ class RetrievalIndexResponse(BaseModel):
     metadata: Dict[str,Any] = Field(default_factory=dict)
 
 class RetrievalSearchRequest(BaseModel):
-    query: str
-    top_k: int = 5
+    """
+    Request body for semantic retrieval.
+    """
+    query: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Natural-language query used to search indexed "
+            "knowledge-base chunks."
+        ),
+    )
+    top_k: int = Field(
+        default=5,
+        gt=0,
+        description=(
+            "Maximum number of semantically similar chunks "
+            "to return."
+        ),
+    )
 
 class RetrievedChunk(BaseModel):
     rank: int
@@ -66,10 +83,32 @@ def normalize_chunk(chunk: Dict[str,Any]) -> Dict[str,Any]:
     
     return normalized
 
-@router.post("/index-document", response_model=RetrievalIndexResponse)
-async def index_document(file:UploadFile = File(...),
-        retrieval_service: RetrievalService = Depends(get_retrieval_service),
-        )->RetrievalIndexResponse:
+@router.post(
+    "/index-document",
+    response_model=RetrievalIndexResponse,
+    summary="Index an uploaded document",
+    description=(
+        "Upload a supported document, parse and chunk its content, "
+        "generate embeddings, and add the chunks to the in-memory "
+        "vector index."
+    ),
+    response_description=(
+        "Document parsing and vector-indexing statistics."
+    ),
+)
+async def index_document(
+    file: UploadFile = File(
+        ...,
+        description=(
+            "Document file to parse, chunk, embed, and index. "
+            "Supported extensions include .md, .markdown, .txt, "
+            ".json, and .pdf."
+        ),
+    ),
+    retrieval_service: RetrievalService = Depends(
+        get_retrieval_service
+    ),
+) -> RetrievalIndexResponse:
     """
     Upload a document, parse it, chunk it, embed chunks, and add them into the
     in-memory vector index.
@@ -104,7 +143,18 @@ async def index_document(file:UploadFile = File(...),
         metadata=parse_result.get("metadata", {}),
     )
 
-@router.post("/search",response_model=RetrievalSearchResponse)
+@router.post(
+    "/search",
+    response_model=RetrievalSearchResponse,
+    summary="Search indexed knowledge",
+    description=(
+        "Convert a natural-language query into an embedding and "
+        "return the most semantically similar indexed chunks."
+    ),
+    response_description=(
+        "Ranked semantic retrieval results."
+    ),
+)
 def search(request:RetrievalSearchRequest,
     retrieval_service: RetrievalService = Depends(get_retrieval_service),
         )->RetrievalSearchResponse:
