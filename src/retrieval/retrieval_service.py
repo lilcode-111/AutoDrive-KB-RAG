@@ -1,8 +1,11 @@
+import logging
 from typing import Any,Dict,List,Optional
 
 from src.embeddings.embedding_client import EmbeddingClient
 from src.embeddings.sentence_transformer_client import SentenceTransformerEmbeddingClient
 from src.retrieval.vector_index import InMemoryVectorIndex
+
+logger = logging.getLogger(__name__)
 
 class RetrievalService:
     """
@@ -34,12 +37,17 @@ class RetrievalService:
             A status dictionary with indexing statistics.
         """
         if not chunks:
+
+            logger.info("index_chunks called with empty chunks")
+
             return {
                 "status": "success",
                 "indexed_chunk_count": 0,
                 "total_indexed_chunk_count": self.vector_index.count(),
                 "message": "No chunks to index.",
             }
+        
+        logger.info("indexing chunks count=%d", len(chunks))
 
         texts:List[str] = []
 
@@ -52,7 +60,17 @@ class RetrievalService:
             texts.append(str(text))
         
         vectors = self.embedding_client.embed_texts(texts)
+        logger.debug(
+            "generated embeddings count=%d dimension=%d",
+            len(vectors),
+            len(vectors[0]) if vectors else 0,
+        )
+
         self.vector_index.add_chunks(chunks=chunks,vectors=vectors)
+        logger.info(
+            "chunks indexed successfully total_count=%d",
+            self.vector_index.count(),
+        )
 
         return {
             "status": "success",
@@ -78,8 +96,14 @@ class RetrievalService:
         if top_k <= 0:
             raise ValueError("top_k must be greater than 0")
         
+        logger.info("retrieval search query=%s top_k=%d", len(query), top_k)
+        
         query_vector = self.embedding_client.embed_query(query)
         results = self.vector_index.search(query_vector=query_vector,top_k=top_k)
+        logger.info(
+            "retrieval completed result_count=%d",
+            len(results),
+        )
 
         return {
             "query": query,
@@ -98,4 +122,10 @@ class RetrievalService:
         """
         Clear all indexed chunks and vectors.
         """
+        previous_count = self.vector_index.count()
         self.vector_index.clear()
+
+        logger.info(
+            "retrieval index cleared previous_count=%d",
+            previous_count,
+        )

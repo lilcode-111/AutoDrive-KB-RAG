@@ -1,9 +1,12 @@
+import logging
 from typing import Any,Dict
 from src.llm.llm_client import LLMClient
 from src.prompt.prompt_builder import build_rag_prompt
 from src.retrieval.retrieval_service import RetrievalService
 
 INSUFFICIENT_CONTEXT_ANSWER = "根据当前资料无法确定。"
+
+logger = logging.getLogger(__name__)
 
 class RAGService:
     """
@@ -63,6 +66,12 @@ class RAGService:
         if top_k <= 0:
             raise ValueError("top_k must be greater than 0")
         
+        logger.info(
+            "rag answer request top_k=%d query_length=%d",
+            top_k,
+            len(cleaned_query),
+        )
+        
         search_result = self.retrieval_service.search(
             query=cleaned_query,
             top_k=top_k,
@@ -70,7 +79,14 @@ class RAGService:
 
         retrieved_chunks = search_result.get("results") or []
 
+        logger.info(
+            "rag retrieval completed source_count=%d",
+            len(retrieved_chunks),
+        )
+
         if not retrieved_chunks:
+            logger.warning("rag answer skipped because no context was retrieved")
+
             return {
                 "query": cleaned_query,
                 "answer": INSUFFICIENT_CONTEXT_ANSWER,
@@ -84,7 +100,16 @@ class RAGService:
             retrieved_chunks=retrieved_chunks
         )
 
+        logger.debug("rag prompt built prompt_length=%d", len(prompt),)
+
+        logger.info(
+            "calling llm generation source_count=%d",
+            len(retrieved_chunks),
+        )
+
         generated_answer = self.llm_client.generate(prompt)
+
+        logger.info("rag answer generated answer_length=%d", len(generated_answer),)
 
         return {
             "query": cleaned_query,
