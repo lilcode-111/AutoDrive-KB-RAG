@@ -1,8 +1,12 @@
+from contextlib import asynccontextmanager
+import logging
+
 from fastapi import FastAPI
 from app.routers import health,documents,retrieval,rag
 from app.config import get_settings
 from app.logging_config import configure_logging
 
+logger = logging.getLogger(__name__)
 OPENAPI_TAGS = [
     {
         "name": "health",
@@ -39,6 +43,22 @@ configure_logging(
     settings.log_level,
 )
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifecycle management.
+    """
+
+    logger.info(
+        "AutoDrive-KB-RAG service starting"
+    )
+
+    yield
+
+    logger.info(
+        "AutoDrive-KB-RAG service shutting down"
+    )
+
 app = FastAPI(
     title="AutoDrive-KB-RAG API",
     description=(
@@ -48,6 +68,7 @@ app = FastAPI(
     ),
     version = "0.1.0",
     openapi_tags=OPENAPI_TAGS,
+    lifespan=lifespan,
 )
 
 app.include_router(health.router)

@@ -132,6 +132,8 @@ class Settings:
 
     Configuration values are loaded from environment variables by from_env().
     """
+    app_name: str = "AutoDrive-KB-RAG"
+    version: str = "0.1.0"
 
     llm_provider : str = "fake"
 

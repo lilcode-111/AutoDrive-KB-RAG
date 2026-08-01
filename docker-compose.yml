@@ -1,5 +1,7 @@
 services:
   autodrive-kb-rag:
+    build:
+        context: .
     image: autodrive-kb-rag
     container_name: autodrive-kb-rag-service
     ports:

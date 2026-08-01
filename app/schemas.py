@@ -2,11 +2,24 @@ from typing import List,Any,Dict
 from pydantic import BaseModel,Field
 
 #表示服务是否正常运行
-class HealthResponse(BaseModel):  
+class HealthDependencies(BaseModel):
+    retrieval: str
+    llm: str
+
+
+class RetrievalHealth(BaseModel):
+    indexed_chunks: int
+
+
+class HealthResponse(BaseModel):
     status: str
-    project: str
-    week: str
-    message: str
+    service: str
+    version: str
+
+class ReadinessResponse(BaseModel):
+    status: str
+    dependencies: HealthDependencies
+    retrieval: RetrievalHealth
 
 #这是给api/v1/info接口用的
 class ProjectInfoResponse(BaseModel):
